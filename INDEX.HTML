@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AI Nanoparticle Treatment Analyzer</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial;
+}
+
+body{
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    min-height:100vh;
+    color:white;
+    padding:20px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+.title{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.title h1{
+    font-size:38px;
+    color:#38bdf8;
+}
+
+.title p{
+    color:#cbd5e1;
+    margin-top:10px;
+}
+
+.card{
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(10px);
+    padding:25px;
+    border-radius:20px;
+    box-shadow:0 0 20px rgba(0,0,0,0.3);
+}
+
+textarea{
+    width:100%;
+    height:120px;
+    border:none;
+    outline:none;
+    border-radius:12px;
+    padding:15px;
+    font-size:16px;
+    margin-top:15px;
+}
+
+button{
+    width:100%;
+    margin-top:20px;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:#38bdf8;
+    color:white;
+    font-size:18px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#0284c7;
+}
+
+.result{
+    margin-top:30px;
+}
+
+.resultCard{
+    background:rgba(255,255,255,0.08);
+    padding:20px;
+    border-radius:15px;
+    margin-top:20px;
+}
+
+.best{
+    color:#4ade80;
+    font-size:24px;
+    margin-bottom:10px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+table th,table td{
+    padding:12px;
+    border-bottom:1px solid rgba(255,255,255,0.2);
+    text-align:left;
+}
+
+.chartBox{
+    margin-top:30px;
+    background:white;
+    padding:15px;
+    border-radius:15px;
+}
+
+@media(max-width:768px){
+
+    .title h1{
+        font-size:28px;
+    }
+
+    table{
+        font-size:14px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="title">
+
+        <h1>🌿 AI Nanoparticle Treatment Analyzer</h1>
+
+        <p>
+            Intelligent Medicinal Plant Combination Recommendation System
+        </p>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Enter 2–3 Medicinal Plants</h2>
+
+        <textarea id="plants"
+        placeholder="Example: Neem, Tulsi, Aloe vera"></textarea>
+
+        <button onclick="analyzePlants()">
+            Analyze Treatment Combination
+        </button>
+
+    </div>
+
+    <div class="result" id="result"></div>
+
+</div>
+
+<script>
+
+// Dataset
+const data = [
+
+{
+plant:"Azadirachta indica (Neem)",
+size_nm:"20-50",
+zeta_mV:-25,
+antimicrobial:"Strong"
+},
+
+{
+plant:"Ocimum sanctum (Tulsi)",
+size_nm:"10-40",
+zeta_mV:-22,
+antimicrobial:"Strong"
+},
+
+{
+plant:"Aloe vera",
+size_nm:"15-30",
+zeta_mV:-18,
+antimicrobial:"Moderate"
+},
+
+{
+plant:"Moringa oleifera",
+size_nm:"30-70",
+zeta_mV:-30,
+antimicrobial:"Strong"
+},
+
+{
+plant:"Phyllanthus emblica (Amla)",
+size_nm:"10-25",
+zeta_mV:-28,
+antimicrobial:"Strong"
+},
+
+{
+plant:"Psidium guajava (Guava leaves)",
+size_nm:"15-35",
+zeta_mV:-24,
+antimicrobial:"Strong"
+},
+
+{
+plant:"Eucalyptus globulus",
+size_nm:"10-30",
+zeta_mV:-26,
+antimicrobial:"Strong"
+},
+
+{
+plant:"Citrus limon (Lemon peel)",
+size_nm:"10-20",
+zeta_mV:-29,
+antimicrobial:"Strong"
+},
+
+{
+plant:"Punica granatum (Pomegranate peel)",
+size_nm:"10-30",
+zeta_mV:-28,
+antimicrobial:"Strong"
+},
+
+{
+plant:"Camellia sinensis (Green tea)",
+size_nm:"10-25",
+zeta_mV:-30,
+antimicrobial:"Strong"
+}
+
+];
+
+// Average size
+function avgSize(size){
+
+    const parts = size.split("-");
+
+    return (
+        parseInt(parts[0]) +
+        parseInt(parts[1])
+    ) / 2;
+}
+
+// Score
+function score(p){
+
+    let s = 0;
+
+    s += (100 - avgSize(p.size_nm));
+
+    s += Math.abs(p.zeta_mV);
+
+    if(p.antimicrobial.toLowerCase() === "strong"){
+        s += 30;
+    }
+    else{
+        s += 10;
+    }
+
+    return s;
+}
+
+// GCD
+function gcd(a,b){
+
+    return b === 0 ? a : gcd(b,a%b);
+}
+
+// Simplify Ratio
+function simplifyRatio(values){
+
+    let rounded = values.map(v=>Math.round(v));
+
+    let common = rounded.reduce((a,b)=>gcd(a,b));
+
+    return rounded.map(v=>v/common);
+}
+
+let chart;
+
+// Main Analysis
+function analyzePlants(){
+
+    const input =
+    document.getElementById("plants")
+    .value.toLowerCase();
+
+    const plantList =
+    input.split(",");
+
+    let selected = [];
+
+    plantList.forEach(name=>{
+
+        name = name.trim();
+
+        data.forEach(plant=>{
+
+            if(
+                plant.plant
+                .toLowerCase()
+                .includes(name)
+            ){
+                selected.push(plant);
+            }
+
+        });
+
+    });
+
+    if(selected.length < 2){
+
+        document.getElementById("result")
+        .innerHTML =
+        "<div class='resultCard'>❌ Please enter at least 2 valid plants.</div>";
+
+        return;
+    }
+
+    let scores =
+    selected.map(p=>score(p));
+
+    let total =
+    scores.reduce((a,b)=>a+b);
+
+    let ratios =
+    simplifyRatio(scores);
+
+    let best =
+    selected[scores.indexOf(Math.max(...scores))];
+
+    let tableRows = "";
+
+    selected.forEach((p,i)=>{
+
+        let pct =
+        ((scores[i]/total)*100).toFixed(1);
+
+        tableRows += `
+
+        <tr>
+
+            <td>${p.plant}</td>
+
+            <td>${scores[i].toFixed(1)}</td>
+
+            <td>${pct}%</td>
+
+            <td>${ratios[i]}</td>
+
+        </tr>
+        `;
+    });
+
+    const ratioString =
+    ratios.join(" : ");
+
+    document.getElementById("result")
+    .innerHTML = `
+
+    <div class="resultCard">
+
+        <div class="best">
+            🌟 Best Plant:
+            ${best.plant}
+        </div>
+
+        <p><b>Particle Size:</b>
+        ${best.size_nm} nm</p>
+
+        <p><b>Zeta Potential:</b>
+        ${best.zeta_mV} mV</p>
+
+        <p><b>Antimicrobial:</b>
+        ${best.antimicrobial}</p>
+
+        <h3 style="margin-top:20px;">
+            📊 Score Breakdown
+        </h3>
+
+        <table>
+
+            <tr>
+                <th>Plant</th>
+                <th>Score</th>
+                <th>Percentage</th>
+                <th>Ratio</th>
+            </tr>
+
+            ${tableRows}
+
+        </table>
+
+        <h2 style="margin-top:20px;color:#4ade80;">
+            ✅ Recommended Treatment Ratio
+        </h2>
+
+        <h3>
+            ${ratioString}
+        </h3>
+
+        <div class="chartBox">
+            <canvas id="chart"></canvas>
+        </div>
+
+    </div>
+    `;
+
+    const ctx =
+    document.getElementById("chart");
+
+    if(chart){
+        chart.destroy();
+    }
+
+    chart = new Chart(ctx,{
+
+        type:'pie',
+
+        data:{
+
+            labels:
+            selected.map(p=>p.plant),
+
+            datasets:[{
+
+                data:scores
+
+            }]
+        }
+    });
+}
+
+</script>
+
+</body>
+</html>
